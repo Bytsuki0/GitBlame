@@ -24,8 +24,9 @@ def setup_nltk():
         print("Download concluído.")
 
 # analise de sentimentos de todos os comentarios
-def get_user_activity_sentiment(username, token, repoName, num_events):
-    setup_nltk()
+def get_user_activity_sentiment(token, repoName, num_events):
+    username = repoName.split("/")[0]
+    repoName = repoName.split("/")[1]
     headers = {"Authorization": f"token {token}"}
     sia = SentimentIntensityAnalyzer()
     
@@ -38,6 +39,7 @@ def get_user_activity_sentiment(username, token, repoName, num_events):
     
   
     issues_url = f"https://api.github.com/repos/{username}/{repoName}/issues/comments"
+    
     issues_response = requests.get(issues_url, headers=headers)
     
     issues_info = "Comentários em Issues:\n"
@@ -179,7 +181,7 @@ def get_user_activity_sentiment(username, token, repoName, num_events):
         sentiment_summary += f"{category}: {avg_score:.2f} ({sentiment_type})\n"
     
     activity_info += sentiment_summary
-    gb.data_rows.append(("Atividade do usuário com análise de sentimentos", activity_info))
-    gb.data_rows.append(("Médias de sentimento", sentiment_averages))
     
-    return sentiment_averages
+
+    sentiment = sentiment_averages["geral"]
+    return sentiment

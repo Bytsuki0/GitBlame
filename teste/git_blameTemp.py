@@ -5,24 +5,31 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import re
 from typing import Dict, List, Tuple, Set, Optional, Union, Any
-import gitblame as gb
-import configparser as cfgparser
-
-config = cfgparser.ConfigParser()
-config.read('config.ini')
-username = config['github']['username']
-token = config['github']['token']
 
 class GitHubStatsAnalyzer:
-
+    """
+    Classe para analisar estatísticas de contribuição em repositórios Git
+    usando PyDrill para processar os dados.
+    """
     
     def __init__(self, repositories_path: str):
-
+        """
+        Inicializa o analisador de estatísticas do GitHub.
+        
+        Args:
+            repositories_path: Caminho para a pasta que contém os repositórios a serem analisados
+        """
         self.repositories_path = repositories_path
         self.repos = self._discover_repositories()
         self.results = {}
     
     def _discover_repositories(self) -> List[str]:
+        """
+        Descobre todos os repositórios Git no caminho fornecido.
+        
+        Returns:
+            Lista de caminhos para repositórios Git
+        """
         repos = []
         
         for root, dirs, _ in os.walk(self.repositories_path):
@@ -32,28 +39,65 @@ class GitHubStatsAnalyzer:
         return repos
     
     def _run_git_command(self, repo_path: str, command: List[str]) -> str:
-
+        """
+        Executa um comando git no repositório especificado.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            command: Lista com o comando git a ser executado
+            
+        Returns:
+            Saída do comando git
+        """
         full_command = ['git', '-C', repo_path] + command
         result = subprocess.run(full_command, capture_output=True, text=True)
         return result.stdout.strip()
     
-    # Obtém o proprietário do repositório a partir da URL remota
     def _get_repository_owner(self, repo_path: str) -> str:
+        """
+        Obtém o nome do proprietário do repositório.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Nome do proprietário do repositório
+        """
         remote_url = self._run_git_command(repo_path, ['remote', 'get-url', 'origin'])
         
+        # Padrão para extrair o nome do proprietário de URLs do GitHub
         if 'github.com' in remote_url:
             match = re.search(r'github\.com[:/]([^/]+)', remote_url)
             if match:
                 return match.group(1)
+        
+        # Se não conseguir determinar o proprietário, retorna o nome de usuário local
         config_user = self._run_git_command(repo_path, ['config', 'user.name'])
         return config_user
-    # Obtém o nome do repositório a partir do caminho
+    
     def _get_repository_name(self, repo_path: str) -> str:
-
+        """
+        Obtém o nome do repositório.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Nome do repositório
+        """
+        # Extrai o nome do repositório do caminho
         return os.path.basename(repo_path)
     
     def _get_repository_contributors(self, repo_path: str) -> Dict[str, int]:
-
+        """
+        Obtém todos os contribuidores do repositório e o número de commits.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Dicionário com contribuidores e número de commits
+        """
         output = self._run_git_command(repo_path, ['shortlog', '-sne', 'HEAD'])
         contributors = {}
         
@@ -69,11 +113,27 @@ class GitHubStatsAnalyzer:
         return contributors
     
     def _get_current_user_email(self, repo_path: str) -> str:
-
+        """
+        Obtém o email do usuário atual configurado no git.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Email do usuário atual
+        """
         return self._run_git_command(repo_path, ['config', 'user.email'])
     
     def _get_repository_permissions(self, repo_path: str) -> Dict[str, str]:
-
+        """
+        Verifica as permissões do usuário atual no repositório.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Dicionário com informações de permissão
+        """
         user_email = self._get_current_user_email(repo_path)
         owner = self._get_repository_owner(repo_path)
         
@@ -83,15 +143,13 @@ class GitHubStatsAnalyzer:
         
         # Verifica se o usuário tem permissão de escrita (simplificado)
         # Em um cenário real, seria necessário verificar as permissões do GitHub API
-        has_write_permission = False
         try:
             # Tenta criar um arquivo temporário e depois remove
             temp_file = os.path.join(repo_path, '.temp_pydrill_test')
             with open(temp_file, 'w') as f:
                 f.write('test')
             os.remove(temp_file)
-            if username != owner:
-                has_write_permission = True
+            has_write_permission = True
         except:
             has_write_permission = False
         
@@ -103,10 +161,17 @@ class GitHubStatsAnalyzer:
             'commit_count': contributors.get(user_email, 0) if has_commits else 0,
             'has_write_permission': has_write_permission
         }
-    # Obtém o número total de linhas alteradas pelo usuário no repositório
-    # Isso pode incluir adições e deleções
+    
     def _get_lines_changed(self, repo_path: str) -> int:
-
+        """
+        Calcula o total de linhas alteradas pelo usuário atual no repositório.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Número total de linhas alteradas
+        """
         user_email = self._get_current_user_email(repo_path)
         output = self._run_git_command(repo_path, ['log', '--author=' + user_email, '--stat', 'HEAD'])
         
@@ -119,34 +184,54 @@ class GitHubStatsAnalyzer:
         
         return total_lines
     
-    # Obtém o número de contribuições mensais do usuário no repositório
     def _get_monthly_contributions(self, repo_path: str, months: int = 12) -> Dict[str, int]:
+        """
+        Verifica a contribuição mensal do usuário nos últimos X meses.
         
+        Args:
+            repo_path: Caminho para o repositório
+            months: Número de meses a serem analisados
+            
+        Returns:
+            Dicionário com meses e número de contribuições
+        """
         user_email = self._get_current_user_email(repo_path)
         
         # Calcula a data de início (X meses atrás)
         end_date = datetime.now()
         start_date = end_date - timedelta(days=30 * months)
-
+        
+        # Formato de data para comandos git
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
-
+        
+        # Obtém todos os commits do usuário
         output = self._run_git_command(
             repo_path, 
             ['log', '--author=' + user_email, '--since=' + start_date_str, '--until=' + end_date_str, '--format=%ad', '--date=format:%Y-%m']
         )
-
+        
+        # Agrupa por mês
         monthly_contributions = defaultdict(int)
         for line in output.split('\n'):
             if line.strip():
                 monthly_contributions[line] += 1
         
         return dict(monthly_contributions)
-    # Obtém a sequência máxima de contribuições consecutivas por semana no ano
+    
     def _get_consecutive_contribution_streak(self, repo_path: str) -> int:
-
+        """
+        Calcula a sequência máxima de contribuições consecutivas por semana no ano.
+        
+        Args:
+            repo_path: Caminho para o repositório
+            
+        Returns:
+            Número máximo de semanas consecutivas com contribuições
+        """
         user_email = self._get_current_user_email(repo_path)
-
+        
+        # Obtém todos os commits do usuário no último ano
         one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
         output = self._run_git_command(
             repo_path, 
@@ -226,7 +311,12 @@ class GitHubStatsAnalyzer:
         }
     
     def analyze_all_repositories(self) -> Dict[str, Dict[str, Any]]:
-
+        """
+        Analisa todos os repositórios descobertos e gera estatísticas.
+        
+        Returns:
+            Dicionário com estatísticas de todos os repositórios
+        """
         results = {}
         for repo_path in self.repos:
             repo_name = self._get_repository_name(repo_path)
@@ -321,7 +411,15 @@ class GitHubStatsAnalyzer:
         return achievements
     
     def get_results_as_json(self, criteria: Dict[str, Any] = None) -> str:
-
+        """
+        Retorna os resultados em formato JSON.
+        
+        Args:
+            criteria: Critérios para verificação dos objetivos
+            
+        Returns:
+            String JSON com os resultados
+        """
         achievements = self.check_achievements(criteria)
         
         result = {
@@ -333,8 +431,18 @@ class GitHubStatsAnalyzer:
         return json.dumps(result, indent=2)
 
 
+# Função para ser chamada de outros scripts
 def check_github_achievements(repositories_path: str, criteria: Dict[str, Any] = None) -> Dict[str, Any]:
-
+    """
+    Verifica os objetivos do GitHub com base nos critérios fornecidos.
+    
+    Args:
+        repositories_path: Caminho para a pasta que contém os repositórios
+        criteria: Critérios específicos para verificar os objetivos
+        
+    Returns:
+        Dicionário com os resultados
+    """
     analyzer = GitHubStatsAnalyzer(repositories_path)
     analyzer.analyze_all_repositories()
     achievements = analyzer.check_achievements(criteria)
@@ -345,29 +453,30 @@ def check_github_achievements(repositories_path: str, criteria: Dict[str, Any] =
         'criteria_used': criteria
     }
 
-def main():
 
-    repo_path = "D:\Code\GitBlame\Bytsuki0"
+# Exemplo de uso
+if __name__ == "__main__":
+    # Caminho para a pasta que contém os repositórios
+    repo_path = "D:\Code\GitBlame\Python"
     
+    # Critérios personalizados
     custom_criteria = {
-        'lines_changed': 10000,           
-        'monthly_streak_single': 6,     
-        'monthly_streak_multiple': 3,   
-        'weekly_streak': 5,              
-        'edit_rights_non_owner': True,   
-        'commit_percentage': 25         
+        'lines_changed': 500,             # Alterou 500+ linhas em um repositório
+        'monthly_streak_single': 6,       # Participou de um repositório por 6+ meses
+        'monthly_streak_multiple': 3,     # Participou de 2+ repositórios por 3+ meses
+        'weekly_streak': 5,               # Sequência de 5+ contribuições semanais
+        'edit_rights_non_owner': True,    # Tem direitos de edição em repo não próprio
+        'commit_percentage': 25           # Tem 25%+ dos commits em repo não próprio
     }
-
+    
+    # Executa a análise
     analyzer = GitHubStatsAnalyzer(repo_path)
     results = analyzer.analyze_all_repositories()
     achievements = analyzer.check_achievements(custom_criteria)
     
-
+    # Exibe os resultados
     print(json.dumps(achievements, indent=2))
     
+    # Para exportar os resultados completos para um arquivo
     with open('github_achievements.json', 'w') as f:
         f.write(analyzer.get_results_as_json(custom_criteria))
-
-
-if __name__ == "__main__":
-    main()

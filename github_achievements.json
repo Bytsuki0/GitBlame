@@ -1,0 +1,184 @@
+{
+  "achievements": {
+    "altered_x_lines": true,
+    "monthly_contributions_single_repo": true,
+    "monthly_contributions_multiple_repos": true,
+    "weekly_contribution_streak": true,
+    "edit_rights_non_owner": true,
+    "commit_percentage_non_owner": true
+  },
+  "repository_stats": {
+    "Bytsuki0": {
+      "repo_name": "Bytsuki0",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "C-C--": {
+      "repo_name": "C-C--",
+      "lines_changed": 81,
+      "monthly_contributions": {
+        "2024-05": 1
+      },
+      "consecutive_contribution_streak": 1,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 100.0
+    },
+    "CalculadoraJava": {
+      "repo_name": "CalculadoraJava",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": true,
+      "commit_percentage": 0.0
+    },
+    "Class-Studies": {
+      "repo_name": "Class-Studies",
+      "lines_changed": 283,
+      "monthly_contributions": {
+        "2024-11": 9
+      },
+      "consecutive_contribution_streak": 2,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 75.0
+    },
+    "ClassUFLA": {
+      "repo_name": "ClassUFLA",
+      "lines_changed": 1771,
+      "monthly_contributions": {
+        "2024-08": 7,
+        "2024-07": 3
+      },
+      "consecutive_contribution_streak": 5,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 81.81818181818183
+    },
+    "Geicida": {
+      "repo_name": "Geicida",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "GitBlame": {
+      "repo_name": "GitBlame",
+      "lines_changed": 0,
+      "monthly_contributions": {
+        "2025-05": 1
+      },
+      "consecutive_contribution_streak": 1,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 50.0
+    },
+    "IC-2024-FAPEMIG": {
+      "repo_name": "IC-2024-FAPEMIG",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": true,
+      "commit_percentage": 0.0
+    },
+    "Java": {
+      "repo_name": "Java",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "Leet_code": {
+      "repo_name": "Leet_code",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "phd2022": {
+      "repo_name": "phd2022",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": true,
+      "commit_percentage": 0.0
+    },
+    "photoshopCClinux": {
+      "repo_name": "photoshopCClinux",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "Python": {
+      "repo_name": "Python",
+      "lines_changed": 277771,
+      "monthly_contributions": {
+        "2025-04": 5,
+        "2025-03": 1,
+        "2025-02": 3,
+        "2025-01": 5,
+        "2024-08": 1,
+        "2024-07": 1,
+        "2024-06": 1
+      },
+      "consecutive_contribution_streak": 3,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 68.75
+    },
+    "Statistics_in_R": {
+      "repo_name": "Statistics_in_R",
+      "lines_changed": 6289,
+      "monthly_contributions": {
+        "2025-04": 6,
+        "2025-03": 9
+      },
+      "consecutive_contribution_streak": 5,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 93.75
+    },
+    "Tsuki-I": {
+      "repo_name": "Tsuki-I",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    },
+    "tutorial-conflitos": {
+      "repo_name": "tutorial-conflitos",
+      "lines_changed": 0,
+      "monthly_contributions": {},
+      "consecutive_contribution_streak": 0,
+      "is_owner": false,
+      "has_write_permission": false,
+      "commit_percentage": 0.0
+    }
+  },
+  "criteria_used": {
+    "lines_changed": 10000,
+    "monthly_streak_single": 6,
+    "monthly_streak_multiple": 3,
+    "weekly_streak": 5,
+    "edit_rights_non_owner": true,
+    "commit_percentage": 25
+  }
+}

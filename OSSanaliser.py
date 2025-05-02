@@ -82,7 +82,6 @@ def get_user_activity(username, token, repoName, num_events):
         print(err)
         commit_info += err
     activity_info += commit_info
-    gb.data_rows.append(("Atividade do usuário", activity_info))
 
 
 #todos os ultimos e issues e pull requests abertos
@@ -135,7 +134,6 @@ def get_user_opened_issues_and_prs(username, token, num_events):
         prs_resolved += err
     resolved_info += prs_resolved
 
-    gb.data_rows.append(("Issues e Pull Requests resolvidas", resolved_info))
     return [issues,pull]
 
 
@@ -224,8 +222,6 @@ def get_user_resolved_issues_and_prs(username, token, num_events):
         merged_prs_info += err
     
     resolved_info += merged_prs_info + "\n"
-    
-    gb.data_rows.append(("Issues e Pull Requests resolvidas", resolved_info))
 
     return [resolved_issues, resolved_pull, merged_prs_count, resolved_issues_non_owned, resolved_pull_non_owned, merged_prs_count_non_owned]
 
@@ -290,7 +286,6 @@ def get_commit_stats_total(username, token):
     info = [total_commits, total_lines_changed]
     print("\nEstatísticas totais (todos os repositórios em que o usuário participa):")
     print(summary)
-    gb.data_rows.append(("Estatísticas Totais", stats_info))
     return info
 
 
@@ -341,7 +336,6 @@ def get_commit_stats_total(username, token):
     info = [total_commits, total_lines_changed]
     print("\nEstatísticas totais (todos os repositórios em que o usuário participa):")
     print(summary)
-    gb.data_rows.append(("Estatísticas Totais", stats_info))
     return info
 
 
@@ -393,7 +387,6 @@ def get_commit_stats_non_owned(username, token):
     stats_info += "\n" + summary
     print("\nEstatísticas para repositórios que NÃO são de propriedade do usuário:")
     print(summary)
-    gb.data_rows.append(("Estatísticas Repositórios Não Próprios", stats_info))
     info = [total_commits, total_lines_changed]
     return info
 
@@ -433,7 +426,6 @@ def get_repo_participation_stats(username, token):
             print(repo_line)
             participation_info += repo_line + "\n"
     
-    gb.data_rows.append(("Participação em Repositórios", participation_info))  
     all_repos = [[],[]] 
     all_repos[1] = [repo.get("full_name") for repo in repos if repo.get("owner", {}).get("login") != username]
     all_repos[0] = [repo.get("full_name") for repo in repos if repo.get("owner", {}).get("login") == username]
