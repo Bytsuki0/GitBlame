@@ -1,6 +1,14 @@
 import os
 import subprocess
 import json
+import re
+import time
+import stat
+import requests
+import platform 
+import subprocess
+import shutil
+from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict
 import re
@@ -344,10 +352,18 @@ def check_github_achievements(repositories_path: str, criteria: Dict[str, Any] =
         'repository_stats': analyzer.results,
         'criteria_used': criteria
     }
+def os_user(username):
+    if platform.system() == "Windows":
+        path = Path(__file__).resolve().parent
+        return path / username
+    
+    if platform.system() == "Linux":
+        path = Path(__file__).resolve().parent
+        return path / username
 
 def main():
 
-    repo_path = "D:\Code\GitBlame\Bytsuki0"
+    repo_path = os_user(username)
     
     custom_criteria = {
         'lines_changed': 10000,           
