@@ -1,10 +1,24 @@
 import os
 import subprocess
 import json
+import re
+import time
+import stat
+import requests
+import platform 
+import subprocess
+import shutil
+from pathlib import Path
 from datetime import datetime, timedelta
 from collections import defaultdict
 import re
 from typing import Dict, List, Tuple, Set, Optional, Union, Any
+import configparser as cfgparser
+
+config = cfgparser.ConfigParser()
+config.read('config.ini')
+username = config['github']['username']
+token = config['github']['token']
 
 class GitHubStatsAnalyzer:
     """
@@ -12,14 +26,16 @@ class GitHubStatsAnalyzer:
     usando PyDrill para processar os dados.
     """
     
-    def __init__(self, repositories_path: str):
+    def __init__(self, repositories_path: str, username: str = None):
         """
         Inicializa o analisador de estatísticas do GitHub.
         
         Args:
             repositories_path: Caminho para a pasta que contém os repositórios a serem analisados
+            username: Nome de usuário do GitHub a ser analisado (opcional)
         """
         self.repositories_path = repositories_path
+        self.username = username
         self.repos = self._discover_repositories()
         self.results = {}
     
@@ -67,9 +83,20 @@ class GitHubStatsAnalyzer:
         
         # Padrão para extrair o nome do proprietário de URLs do GitHub
         if 'github.com' in remote_url:
-            match = re.search(r'github\.com[:/]([^/]+)', remote_url)
+            match = re.search(r'github\.com[:/]([^/]+)/([^/\.]+)', remote_url)
             if match:
-                return match.group(1)
+                owner = match.group(1)
+                repo_name = match.group(2)
+                
+                # Tenta obter o proprietário real usando a API do GitHub
+                try:
+                    response = requests.get(f"https://api.github.com/repos/{owner}/{repo_name}")
+                    if response.status_code == 200:
+                        return response.json().get('owner', {}).get('login', owner)
+                except:
+                    pass
+                
+                return owner
         
         # Se não conseguir determinar o proprietário, retorna o nome de usuário local
         config_user = self._run_git_command(repo_path, ['config', 'user.name'])
@@ -115,18 +142,42 @@ class GitHubStatsAnalyzer:
     def _get_current_user_email(self, repo_path: str) -> str:
         """
         Obtém o email do usuário atual configurado no git.
+        Se um username foi fornecido, busca o email deste usuário no histórico de commits.
         
         Args:
             repo_path: Caminho para o repositório
             
         Returns:
-            Email do usuário atual
+            Email do usuário atual ou do usuário especificado
         """
+        if self.username:
+            # Busca por commits do usuário especificado
+            output = self._run_git_command(repo_path, ['log', '--all', '--format=%ae %an', '--author=' + self.username])
+            
+            if output:
+                # Pega o primeiro email associado ao usuário
+                first_line = output.split('\n')[0]
+                if ' ' in first_line:
+                    email = first_line.split(' ')[0]
+                    return email
+            
+            # Se não encontrar, tenta uma busca mais ampla pelo nome
+            output = self._run_git_command(repo_path, ['log', '--all', '--format=%ae %an'])
+            for line in output.split('\n'):
+                if self.username.lower() in line.lower():
+                    email = line.split(' ')[0]
+                    return email
+                    
+            # Se ainda não encontrar, usa o username como parte do email
+            return f"{self.username}@github.com"
+            
+        # Se nenhum username específico foi fornecido, usa o email configurado localmente
         return self._run_git_command(repo_path, ['config', 'user.email'])
     
-    def _get_repository_permissions(self, repo_path: str) -> Dict[str, str]:
+    def _get_repository_permissions(self, repo_path: str) -> Dict[str, Any]:
         """
-        Verifica as permissões do usuário atual no repositório.
+        Verifica as permissões do usuário no repositório.
+        Se um username foi fornecido, verifica as permissões desse usuário.
         
         Args:
             repo_path: Caminho para o repositório
@@ -137,26 +188,73 @@ class GitHubStatsAnalyzer:
         user_email = self._get_current_user_email(repo_path)
         owner = self._get_repository_owner(repo_path)
         
+        # Extrai informações do remoto para verificação na API
+        remote_url = self._run_git_command(repo_path, ['remote', 'get-url', 'origin'])
+        repo_owner = None
+        repo_name = None
+        
+        if 'github.com' in remote_url:
+            match = re.search(r'github\.com[:/]([^/]+)/([^/\.]+)', remote_url)
+            if match:
+                repo_owner = match.group(1)
+                repo_name = match.group(2)
+        
         # Verifica se o usuário tem commits no repositório
         contributors = self._get_repository_contributors(repo_path)
         has_commits = user_email in contributors
         
-        # Verifica se o usuário tem permissão de escrita (simplificado)
-        # Em um cenário real, seria necessário verificar as permissões do GitHub API
-        try:
-            # Tenta criar um arquivo temporário e depois remove
-            temp_file = os.path.join(repo_path, '.temp_pydrill_test')
-            with open(temp_file, 'w') as f:
-                f.write('test')
-            os.remove(temp_file)
-            has_write_permission = True
-        except:
-            has_write_permission = False
+        # Verifica se o usuário é o dono do repositório
+        is_owner = False
+        has_write_permission = False
+        
+        if self.username and repo_owner and repo_name:
+            # Tenta verificar através da API do GitHub
+            try:
+                # Verifica se o usuário é o dono
+                is_owner = repo_owner.lower() == self.username.lower()
+                
+                # Verifica se o usuário tem permissão de escrita
+                # Note: Esta é uma verificação simples que busca se o usuário é colaborador
+                response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/collaborators/{self.username}")
+                if response.status_code == 204:  # Código 204 indica que é colaborador
+                    has_write_permission = True
+                    
+                    # Verifica o nível de permissão, se disponível
+                    permission_response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}/collaborators/{self.username}/permission")
+                    if permission_response.status_code == 200:
+                        permission = permission_response.json().get('permission')
+                        has_write_permission = permission in ['admin', 'write', 'maintain']
+            except:
+                # Se falhar ao verificar pela API, usamos verificações locais
+                pass
+        
+        # Se não conseguiu verificar pela API ou não tem username específico,
+        # tenta verificar localmente
+        if not self.username or (not has_write_permission and not is_owner):
+            if has_commits:
+                # Se tem commits, assume algum nível de acesso
+                has_write_permission = True
+                
+                # Verifica se o usuário é dono pela comparação de emails/nomes
+                if user_email and owner:
+                    is_owner = user_email.lower() == owner.lower() or (
+                        self.username and self.username.lower() == owner.lower()
+                    )
+            else:
+                # Tenta verificar permissão de escrita tentando criar um arquivo
+                try:
+                    temp_file = os.path.join(repo_path, '.temp_pydrill_test')
+                    with open(temp_file, 'w') as f:
+                        f.write('test')
+                    os.remove(temp_file)
+                    has_write_permission = True
+                except:
+                    has_write_permission = False
         
         return {
             'user_email': user_email,
             'owner': owner,
-            'is_owner': user_email == owner,  # Simplificado
+            'is_owner': is_owner,
             'has_commits': has_commits,
             'commit_count': contributors.get(user_email, 0) if has_commits else 0,
             'has_write_permission': has_write_permission
@@ -164,7 +262,7 @@ class GitHubStatsAnalyzer:
     
     def _get_lines_changed(self, repo_path: str) -> int:
         """
-        Calcula o total de linhas alteradas pelo usuário atual no repositório.
+        Calcula o total de linhas alteradas pelo usuário específico no repositório.
         
         Args:
             repo_path: Caminho para o repositório
@@ -173,7 +271,15 @@ class GitHubStatsAnalyzer:
             Número total de linhas alteradas
         """
         user_email = self._get_current_user_email(repo_path)
-        output = self._run_git_command(repo_path, ['log', '--author=' + user_email, '--stat', 'HEAD'])
+        
+        # Prepara o comando git para buscar estatísticas do usuário
+        author_param = user_email
+        if self.username:
+            # Se temos um nome de usuário específico, incluímos como opção alternativa
+            author_param = f"{self.username}|{user_email}"
+        
+        # Busca estatísticas de todos os commits do usuário
+        output = self._run_git_command(repo_path, ['log', f'--author={author_param}', '--stat', 'HEAD'])
         
         total_lines = 0
         for line in output.split('\n'):
@@ -181,6 +287,38 @@ class GitHubStatsAnalyzer:
             if match:
                 _, insertions, deletions = match.groups()
                 total_lines += int(insertions) + int(deletions)
+                
+            # Busca também por formato alternativo de saída do git
+            match = re.search(r'(\d+) insertions?\(\+\), (\d+) deletions?\(-\)', line)
+            if match and not total_lines:
+                insertions, deletions = match.groups()
+                total_lines += int(insertions) + int(deletions)
+        
+        # Se não encontrou linhas pelo autor, tenta uma abordagem diferente com nome de usuário
+        if total_lines == 0 and self.username:
+            try:
+                # Tenta buscar informações do GitHub API
+                remote_url = self._run_git_command(repo_path, ['remote', 'get-url', 'origin'])
+                if 'github.com' in remote_url:
+                    match = re.search(r'github\.com[:/]([^/]+)/([^/\.]+)', remote_url)
+                    if match:
+                        owner = match.group(1)
+                        repo_name = match.group(2)
+                        
+                        # Busca commits do usuário via API
+                        response = requests.get(f"https://api.github.com/repos/{owner}/{repo_name}/commits?author={self.username}")
+                        if response.status_code == 200:
+                            commits = response.json()
+                            
+                            # Estima linhas alteradas (aproximado)
+                            for commit in commits:
+                                commit_sha = commit['sha']
+                                stats_response = requests.get(f"https://api.github.com/repos/{owner}/{repo_name}/commits/{commit_sha}")
+                                if stats_response.status_code == 200:
+                                    stats = stats_response.json().get('stats', {})
+                                    total_lines += stats.get('additions', 0) + stats.get('deletions', 0)
+            except:
+                pass
         
         return total_lines
     
@@ -205,10 +343,16 @@ class GitHubStatsAnalyzer:
         start_date_str = start_date.strftime('%Y-%m-%d')
         end_date_str = end_date.strftime('%Y-%m-%d')
         
+        # Prepara parâmetro de autor
+        author_param = user_email
+        if self.username:
+            # Se temos um nome de usuário específico, incluímos como opção alternativa
+            author_param = f"{self.username}|{user_email}"
+        
         # Obtém todos os commits do usuário
         output = self._run_git_command(
             repo_path, 
-            ['log', '--author=' + user_email, '--since=' + start_date_str, '--until=' + end_date_str, '--format=%ad', '--date=format:%Y-%m']
+            ['log', '--author=' + author_param, '--since=' + start_date_str, '--until=' + end_date_str, '--format=%ad', '--date=format:%Y-%m']
         )
         
         # Agrupa por mês
@@ -216,6 +360,38 @@ class GitHubStatsAnalyzer:
         for line in output.split('\n'):
             if line.strip():
                 monthly_contributions[line] += 1
+        
+        # Se não encontrou contribuições e temos um nome de usuário específico,
+        # tenta buscar pela API do GitHub
+        if not monthly_contributions and self.username:
+            try:
+                remote_url = self._run_git_command(repo_path, ['remote', 'get-url', 'origin'])
+                if 'github.com' in remote_url:
+                    match = re.search(r'github\.com[:/]([^/]+)/([^/\.]+)', remote_url)
+                    if match:
+                        owner = match.group(1)
+                        repo_name = match.group(2)
+                        
+                        # Busca commits via API
+                        response = requests.get(f"https://api.github.com/repos/{owner}/{repo_name}/commits?author={self.username}")
+                        if response.status_code == 200:
+                            commits = response.json()
+                            
+                            for commit in commits:
+                                commit_date = commit.get('commit', {}).get('author', {}).get('date', '')
+                                if commit_date:
+                                    # Formata data para padrão de mês
+                                    try:
+                                        date_obj = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
+                                        month_key = date_obj.strftime('%Y-%m')
+                                        
+                                        # Verifica se está dentro do período de análise
+                                        if start_date <= date_obj <= end_date:
+                                            monthly_contributions[month_key] += 1
+                                    except:
+                                        pass
+            except:
+                pass
         
         return dict(monthly_contributions)
     
@@ -231,11 +407,16 @@ class GitHubStatsAnalyzer:
         """
         user_email = self._get_current_user_email(repo_path)
         
+        # Prepara parâmetro de autor
+        author_param = user_email
+        if self.username:
+            author_param = f"{self.username}|{user_email}"
+        
         # Obtém todos os commits do usuário no último ano
         one_year_ago = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
         output = self._run_git_command(
             repo_path, 
-            ['log', '--author=' + user_email, '--since=' + one_year_ago, '--format=%ad', '--date=format:%Y-%U']
+            ['log', '--author=' + author_param, '--since=' + one_year_ago, '--format=%ad', '--date=format:%Y-%U']
         )
         
         # Cria conjunto de semanas com contribuições
@@ -243,6 +424,37 @@ class GitHubStatsAnalyzer:
         for line in output.split('\n'):
             if line.strip():
                 weeks_with_contributions.add(line)
+        
+        # Se não encontrou contribuições e temos um nome de usuário específico,
+        # tenta buscar pela API do GitHub
+        if not weeks_with_contributions and self.username:
+            try:
+                remote_url = self._run_git_command(repo_path, ['remote', 'get-url', 'origin'])
+                if 'github.com' in remote_url:
+                    match = re.search(r'github\.com[:/]([^/]+)/([^/\.]+)', remote_url)
+                    if match:
+                        owner = match.group(1)
+                        repo_name = match.group(2)
+                        
+                        # Busca commits via API
+                        response = requests.get(f"https://api.github.com/repos/{owner}/{repo_name}/commits?author={self.username}")
+                        if response.status_code == 200:
+                            commits = response.json()
+                            
+                            for commit in commits:
+                                commit_date = commit.get('commit', {}).get('author', {}).get('date', '')
+                                if commit_date:
+                                    try:
+                                        date_obj = datetime.strptime(commit_date, "%Y-%m-%dT%H:%M:%SZ")
+                                        one_year_ago_date = datetime.now() - timedelta(days=365)
+                                        
+                                        if date_obj >= one_year_ago_date:
+                                            week_id = date_obj.strftime('%Y-%U')
+                                            weeks_with_contributions.add(week_id)
+                                    except:
+                                        pass
+            except:
+                pass
         
         # Calcula a sequência máxima de semanas consecutivas
         max_streak = 0
@@ -278,10 +490,14 @@ class GitHubStatsAnalyzer:
         user_commits = contributors.get(user_email, 0)
         total_commits = sum(contributors.values())
         
-        if total_commits == 0:
-            return 0
-        
-        return (user_commits / total_commits) * 100
+        # Se estamos buscando por um username específico, verifica também 
+        # outros possíveis emails associados
+        if self.username and user_commits == 0:
+            # Tenta encontrar commits do usuário por nome em vez de email
+            output = self._run_git_command(repo_path, ['shortlog', '-sne', 'HEAD'])
+            for line in output.split('\n'):
+                if self.username.lower() in line.lower():
+                    parts = re.match(r'^\s*(\d+)\s+(.+?)\s+<(.+?)>$')
     
     def analyze_repository(self, repo_path: str) -> Dict[str, Any]:
         """
@@ -404,7 +620,10 @@ class GitHubStatsAnalyzer:
         
         # Verifica porcentagem de commits em repositório que não é dono
         for repo_name, repo_data in self.results.items():
-            if not repo_data['is_owner'] and repo_data['commit_percentage'] >= criteria['commit_percentage']:
+            repos = repo_data['commit_percentage']
+            if repo_data['commit_percentage'] is None:
+                repos = repo_data['commit_percentage'] = 0
+            if not repo_data['is_owner'] and repos >= criteria['commit_percentage']:
                 achievements['commit_percentage_non_owner'] = True
                 break
         
@@ -432,18 +651,19 @@ class GitHubStatsAnalyzer:
 
 
 # Função para ser chamada de outros scripts
-def check_github_achievements(repositories_path: str, criteria: Dict[str, Any] = None) -> Dict[str, Any]:
+def check_github_achievements(repositories_path: str, username: str = None, criteria: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Verifica os objetivos do GitHub com base nos critérios fornecidos.
     
     Args:
         repositories_path: Caminho para a pasta que contém os repositórios
+        username: Nome de usuário específico do GitHub para analisar (ex: "Bytsuki0")
         criteria: Critérios específicos para verificar os objetivos
         
     Returns:
         Dicionário com os resultados
     """
-    analyzer = GitHubStatsAnalyzer(repositories_path)
+    analyzer = GitHubStatsAnalyzer(repositories_path, username)
     analyzer.analyze_all_repositories()
     achievements = analyzer.check_achievements(criteria)
     
@@ -453,30 +673,42 @@ def check_github_achievements(repositories_path: str, criteria: Dict[str, Any] =
         'criteria_used': criteria
     }
 
+def os_user(username):
+    if platform.system() == "Windows":
+        path = Path(__file__).resolve().parent
+        return path / username
+    
+    if platform.system() == "Linux":
+        path = Path(__file__).resolve().parent
+        return path / username
 
-# Exemplo de uso
-if __name__ == "__main__":
-    # Caminho para a pasta que contém os repositórios
-    repo_path = "D:\Code\GitBlame\Python"
+
+def main():
+
+    user = username
+    repo_path = os_user(user)
     
-    # Critérios personalizados
     custom_criteria = {
-        'lines_changed': 500,             # Alterou 500+ linhas em um repositório
-        'monthly_streak_single': 6,       # Participou de um repositório por 6+ meses
-        'monthly_streak_multiple': 3,     # Participou de 2+ repositórios por 3+ meses
-        'weekly_streak': 5,               # Sequência de 5+ contribuições semanais
-        'edit_rights_non_owner': True,    # Tem direitos de edição em repo não próprio
-        'commit_percentage': 25           # Tem 25%+ dos commits em repo não próprio
+        'lines_changed': 10000,           
+        'monthly_streak_single': 6,     
+        'monthly_streak_multiple': 3,   
+        'weekly_streak': 5,              
+        'edit_rights_non_owner': True,   
+        'commit_percentage': 25         
     }
-    
-    # Executa a análise
-    analyzer = GitHubStatsAnalyzer(repo_path)
+
+    github_username = username 
+
+    analyzer = GitHubStatsAnalyzer(repo_path, github_username)
     results = analyzer.analyze_all_repositories()
     achievements = analyzer.check_achievements(custom_criteria)
     
-    # Exibe os resultados
+
     print(json.dumps(achievements, indent=2))
     
-    # Para exportar os resultados completos para um arquivo
     with open('github_achievements.json', 'w') as f:
         f.write(analyzer.get_results_as_json(custom_criteria))
+
+
+if __name__ == "__main__":
+    main()
