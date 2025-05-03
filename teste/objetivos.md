@@ -23,19 +23,19 @@ Baseado na revisão bibliográfica, serão definidos pontos (atividades mensurá
 - [ ] Foi marcado para resolver um problema de um repositório [Pontuação: 50: caso marcado para 1 ou mais issues]
 
 #### Capacidade e vontade de ensinar participantes
-- [ ] Análise de personalidade e agressão (feito por um modelo R ou AI?)
+- [x] Análise de personalidade e agressão (feito por um modelo R ou AI?)
 - [ ] Contribuiu com pull-requests de novos participantes
 - [ ] Deu suporte ou comentou em um issue
 - [ ] Comentou no código em pull-requests
 - [ ] Contribuiu com read-me e/ou arquivos para comunidade (Markdown ou txt)
 
 #### Participação e compromisso
-- [ ] Alterou X números de linhas em um repositório
-- [ ] Participou de um repositório ao menos 1 vez ao mês por X meses
-- [ ] Participou de 2+ repositórios ao menos 1 vez ao mês por X meses
-- [ ] Possui sequência de contribuições de X+ vezes na semana no ano
-- [ ] Tem direitos de edição em um repositório que não é dono
-- [ ] Tem X% dos commits em um repositório que não é dono
+- [x] Alterou X números de linhas em um repositório
+- [x] Participou de um repositório ao menos 1 vez ao mês por X meses
+- [x] Participou de 2+ repositórios ao menos 1 vez ao mês por X meses
+- [x] Possui sequência de contribuições de X+ vezes na semana no ano
+- [x] Tem direitos de edição em um repositório que não é dono
+- [x] Tem X% dos commits em um repositório que não é dono
 
 ## StackOverflow   (requisitos e todos os dados para serem alterados depois)
 
