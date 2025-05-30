@@ -14,8 +14,6 @@ import SentimentalAnaliser as f2
 import StatusAnaliser as f3
 
 
-
-
 config = cfgparser.ConfigParser()
 config.read('config.ini')
 username = config['github']['username']
@@ -26,20 +24,14 @@ data_rows = []
 
 #função de calculo preliminar caso passe o usuario é apto para o projeto e ira pra segunda parte do projeto
 def preliminary(commits_non_owned,lines_of_code, pull_issues, merge_solved):
-    pre_point = 0
-    if commits_non_owned[0] > 0:
-        pre_point += 1
-    if lines_of_code[1] > 150000:
-        pre_point += 1
-    if pull_issues[0] > 0 or pull_issues[1] > 0:
-        pre_point += 1
-    if merge_solved[0] > 0 or merge_solved[2] > 0:
-        pre_point += 1  
-
-    if pre_point > 1:
-        return True
-    else:
-        return False
+    i = 0
+    print("commits_non_owned:", commits_non_owned)
+    print("lines_of_code:", lines_of_code)
+    print("pull_issues:", pull_issues)
+    print("merge_solved:", merge_solved)
+   
+    return True
+    
     
 
 def get_git_commits_info(num_commits=20, repoPath = ""):
@@ -66,8 +58,8 @@ def get_git_commits_info(num_commits=20, repoPath = ""):
 
 def softskillpoints(repoPath,repoName, n):
     
-    repos = f1.get_repo_participation_stats(username, token)
-    resolved_issues= f1.get_user_resolved_issues_and_prs(username, token, n)
+    repos = f1.get_repo_participation_stats(username)
+    resolved_issues= f1.get_user_resolved_issues_and_prs(username, n)
     
     get_git_commits_info(n, repoPath)
     f1.get_user_activity(username, token, repoName, n)
@@ -96,7 +88,7 @@ def main():
     if not os.path.exists(pathProjects):
         os.makedirs(pathProjects)
 
-    repoName = f1.get_repo_participation_stats(username, token)
+    repoName = f1.get_repo_participation_stats(username)
     repo1 = repoName[0]
     repo2 = repoName[1]
     repos = repo1 + repo2
@@ -112,10 +104,11 @@ def main():
 
         subprocess.run(["git", "clone", f"https://github.com/{r}.git", repoPath])
    
-    pulls_issues = f1.get_user_opened_issues_and_prs(username, token, n)
-    resolsed_pull_issues = f1.get_user_resolved_issues_and_prs(username, token, n)
-    info = f1.get_commit_stats_total(username, token)
-    info_non_owned = f1.get_commit_stats_non_owned(username, token)  
+    pulls_issues = f1.get_user_opened_issues_and_prs(username, n)
+    resolsed_pull_issues = f1.get_user_resolved_issues_and_prs(username, n)
+    info = f1.get_commit_stats_total(username)
+    info_non_owned = f1.get_commit_stats_non_owned(username)  
+    
 
     if preliminary(info_non_owned, info, pulls_issues, resolsed_pull_issues):
         data_rows.append(("Preliminar", "O usuário está apto para o projeto"))
@@ -125,8 +118,9 @@ def main():
         f2.setup_nltk()
         sentiment_scores = []
         for r in repos:
-            sentiment_scores.append(f2.get_user_activity_sentiment(token, r, n))
+            sentiment_scores.append(f2.get_user_activity_sentiment(r, n))
         print(sentiment_scores)
+        status_data = f3.stats_analyzer(username, token)
     else:
         data_rows.append(("Preliminar", "O usuário não está apto para o projeto"))
         print("O usuário não está apto para o projeto")
