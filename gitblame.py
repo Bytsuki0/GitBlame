@@ -7,6 +7,7 @@ import requests
 import platform 
 import subprocess
 import shutil
+import json
 from pathlib import Path
 import configparser as cfgparser
 import OSSanaliser as f1
@@ -88,44 +89,50 @@ def main():
     if not os.path.exists(pathProjects):
         os.makedirs(pathProjects)
 
+    #Retorna uma lista: [lista_de_proprios, lista_de_colaborando]
     repoName = f1.get_repo_participation_stats(username)
     repo1 = repoName[0]
     repo2 = repoName[1]
     repos = repo1 + repo2
 
-    for r in repos:
-        repo_folder_name = r.split('/')[-1]
-        repoPath = os.path.join(pathProjects, repo_folder_name)
-        # Sair da pasta para evitar erro ao deletar
-        os.chdir(os.path.expanduser("~"))
-
-        if os.path.exists(repoPath):
-            shutil.rmtree(repoPath, onerror=force_remove_readonly)
-
-        subprocess.run(["git", "clone", f"https://github.com/{r}.git", repoPath])
-   
-    pulls_issues = f1.get_user_opened_issues_and_prs(username, n)
-    resolsed_pull_issues = f1.get_user_resolved_issues_and_prs(username, n)
-    info = f1.get_commit_stats_total(username)
-    info_non_owned = f1.get_commit_stats_non_owned(username)  
-    
-
-    if preliminary(info_non_owned, info, pulls_issues, resolsed_pull_issues):
-        data_rows.append(("Preliminar", "O usuário está apto para o projeto"))
-        print("O usuário está apto para o projeto")
-        # Substituir a chamada antiga pela nova função que inclui análise de sentimentos
-        reposi = "D:/Code/GitBlame/Bytsuki0/Python"
-        f2.setup_nltk()
-        sentiment_scores = []
+    print("Digite 1 se quer baixar todos os repositórios localmente")
+    if int(input()) == 1:
         for r in repos:
-            sentiment_scores.append(f2.get_user_activity_sentiment(r, n))
-        print(sentiment_scores)
-        status_data = f3.stats_analyzer(username, token)
-    else:
-        data_rows.append(("Preliminar", "O usuário não está apto para o projeto"))
-        print("O usuário não está apto para o projeto")
-        exit()
+            repo_folder_name = r.split('/')[-1]
+            repoPath = os.path.join(pathProjects, repo_folder_name)
+            # Sair da pasta para evitar erro ao deletar
+            os.chdir(os.path.expanduser("~"))
 
+            if os.path.exists(repoPath):
+                shutil.rmtree(repoPath, onerror=force_remove_readonly)
+
+            subprocess.run(["git", "clone", f"https://github.com/{r}.git", repoPath])
+    
+    #retorna {"issues": [], "prs": []}
+    pulls_issues = f1.get_user_opened_issues_and_prs(username, n)
+
+    #retorna {"resolved_issues": [], "closed_prs": [], "merged_prs_count": 0}
+    resolsed_pull_issues = f1.get_user_resolved_issues_and_prs(username, n)
+
+    #retorna o numero de commits do usuario
+    info = f1.get_commit_stats_total(username)
+
+    #retorna os commits não proprios 
+    info_non_owned = f1.get_commit_stats_non_owned(username, info)  
+    
+    
+    reposi = "D:/Code/GitBlame/Bytsuki0/Python"
+    f2.setup_nltk()
+    sentiment_scores = []
+    for r in repos:
+        sentiment_scores.append(f2.get_user_activity_sentiment(r, n))
+    print(sentiment_scores)
+
+    status = f3.analyzer.get_results_as_json()
+    print("Estatísticas individuais por repositório:\n", status)
+
+    agregados = f3.analyzer.get_aggregate_stats()
+    print("Estatísticas agregadas (últimos 365 dias):\n", json.dumps(agregados, indent=2))
 
 if __name__ == "__main__":
     main()

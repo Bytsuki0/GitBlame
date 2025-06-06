@@ -180,23 +180,19 @@ def get_commit_stats_total(username):
                 stats_info.append((full_name, contrib_count))
 
     print(f"Total de commits públicos: {total_commits}")
-    return stats_info
+    return total_commits
 
 
 # Estatísticas de commits em repositórios não próprios
-def get_commit_stats_non_owned(username):
-    stats = get_commit_stats_total(username)
-    # Filtra pelos repositórios cujo owner não seja o usuário
+def get_commit_stats_non_owned(username, commits):
+    stats = commits
     non_owned = [(repo, cnt) for repo, cnt in stats if not repo.startswith(f"{username}/")]
     return non_owned
 
 
 # Estatísticas de participação em repositórios
 def get_repo_participation_stats(username):
-    """
-    Retorna participação em repositórios públicos de um usuário GitHub.
-    Retorna uma lista: [lista_de_proprios, lista_de_colaborando]
-    """
+
     url = f"https://api.github.com/users/{username}/repos?per_page=100"
     response = requests.get(url, headers=HEADERS)
     if not response.ok:
