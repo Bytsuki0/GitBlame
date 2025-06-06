@@ -17,9 +17,10 @@ O objetivo das condições é realizar uma filtragem estatística dos dados, evi
 Baseado na revisão bibliográfica, serão definidos pontos (atividades mensuráveis) que indicam Soft Skills, como ensinar novatos, mostrar compromisso, participação no GitHub e resolução de problemas.
 
 #### Resolução de problemas
-- [x] Resolveu X+ issues dentro de um repositório que não é dono  [Pontuação: 30 a 50: 1 issue resolvido = 30 pontos até 50 se 3 ou mais issues resolvido]
-- [x] Teve merge em Pull-request(s) em repositório(s) nos quais não é dono [Pontuação: 30 a 50: 1 merge resolvido = 30 pontos até 50 se 3 ou mais merges]
-- [x] Teve X+ commits em repositórios nos quais não é dono [Pontuação: 30 a 50: 5 commits = 30 pontos até 50 se 15 ou mais commits]
+- [x] Resolveu X+ issues dentro de um repositório [Pontuação: 30 a 50: 1 issue resolvido = 30 pontos até 50 se 3 ou mais issues resolvido]
+- [x] Abriu issues ou pull em repositórios [Pontuação: 30 a 50: 5 merge ou issues abertos = 30 pontos até 50 se 10 ou mais merges]
+- [x] Teve X+ merge em Pull-request(s) em repositório [Pontuação: 30 a 50: 5 merge resolvido = 30 pontos até 50 se 10 ou mais merges]
+- [x] Teve X+ commits em repositórios [Pontuação: 30 a 50: 100 commits = 30 pontos até 50 se 1000 ou mais commits]
 - [ ] Foi marcado para resolver um problema de um repositório [Pontuação: 50: caso marcado para 1 ou mais issues]
 
 #### Capacidade e vontade de ensinar participantes
@@ -34,8 +35,8 @@ Baseado na revisão bibliográfica, serão definidos pontos (atividades mensurá
 - [x] Participou de um repositório ao menos 1 vez ao mês por X meses
 - [x] Participou de 2+ repositórios ao menos 1 vez ao mês por X meses
 - [x] Possui sequência de contribuições de X+ vezes na semana no ano
-- [x] Tem direitos de edição em um repositório que não é dono
-- [x] Tem X% dos commits em um repositório que não é dono
+- [x] Tem direitos de edição em um repositório 
+- [x] Tem X% dos commits em um repositório
 
 ## StackOverflow   (requisitos e todos os dados para serem alterados depois)
 
