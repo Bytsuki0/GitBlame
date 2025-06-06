@@ -211,19 +211,6 @@ def main():
 
     st.write("---")
 
-    # Calcular totais
-    if 'df_commits' in locals():
-        total_commits = int(df_commits["Total_Commits"].sum())
-        total_lines = int(df_commits["Linhas_trocadas"].sum()) if "Linhas_trocadas" in df_commits.columns else 0
-        total_repos = df_commits.shape[0]
-    else:
-        total_commits = total_lines = total_repos = 0
-
-    # Estilo tipo "card":
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total de Commits", total_commits)
-    col2.metric("Repositórios Analisados", total_repos)
-    col3.metric("Linhas de Código Trocadas", total_lines)
 
     st.subheader("3. Sentimento médio (Issues/PRs/Commits) por repositório")
 
