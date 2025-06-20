@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import OSSanaliser
 from StatusAnaliser import GitHubStatsAnalyzerAllTime
+from StatusAnaliser  import GitHubLanguageCommitAnalyzer
 import SentimentalAnaliser
 
 import configparser
@@ -107,6 +108,11 @@ def load_issues_and_prs_stats(username, token):
     return pd.DataFrame(data)
 
 
+def load_language_distribution(username, token):
+    analyzer = GitHubLanguageCommitAnalyzer(username, token)
+    return analyzer.analyze_language_usage()
+
+
 
 def main():
     st.title("📊 GitBlame Dashboard")
@@ -117,6 +123,7 @@ def main():
         2. Repositórios próprios/colaborados.
         3. Sentimento médio (Issues, Pull-Requests, Commits) em cada repositório.
         4. Distruibuição de Issues(Abertos e Fechados) e Pull-Requests (Abertos e merged).
+        5. Distribuição por Linguagem de Programação.
         """
     )
 
@@ -274,6 +281,40 @@ def main():
         ax5.set_title("Pull Requests abertos vs. mesclados por repositório")
         ax5.legend()
         st.pyplot(fig5)
+
+
+        st.subheader("5. Distribuição por Linguagem de Programação")
+        with st.spinner("Calculando distribuição por linguagem..."):
+            lang_stats = load_language_distribution(USERNAME, TOKEN)
+
+        if not lang_stats:
+            st.warning("Nenhum dado encontrado de linguagens para este usuário.")
+            return
+
+        # Transformar para DataFrame
+        df_lang = pd.DataFrame([
+            {"Linguagem": lang, "Linhas_editadas": vals[0], "Commits": vals[1]}
+            for lang, vals in lang_stats.items()
+        ])
+
+        df_lang = df_lang.sort_values("Linhas_editadas", ascending=False).reset_index(drop=True)
+
+        st.dataframe(df_lang)
+        
+        fig1, ax1 = plt.subplots(figsize=(8, max(3, 0.5 * len(df_lang))))
+        ax1.barh(df_lang["Linguagem"], df_lang["Linhas_editadas"], color="tab:blue")
+        ax1.set_xlabel("Linhas Editadas")
+        ax1.set_title("Distribuição de Linhas Editadas por Linguagem")
+        plt.tight_layout()
+        st.pyplot(fig1)
+
+        
+        fig2, ax2 = plt.subplots(figsize=(8, max(3, 0.5 * len(df_lang))))
+        ax2.barh(df_lang["Linguagem"], df_lang["Commits"], color="tab:green")
+        ax2.set_xlabel("Número de Commits")
+        ax2.set_title("Distribuição de Commits por Linguagem")
+        plt.tight_layout()
+        st.pyplot(fig2)
 
     st.write("---")
 

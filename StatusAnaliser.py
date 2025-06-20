@@ -192,3 +192,86 @@ class GitHubStatsAnalyzerAllTime:
             'Streak_contribuicoes_consecutivas': aggregate_streak
         }
 
+class GitHubLanguageCommitAnalyzer:
+    def __init__(self, username: str, token: str):
+        self.username = username
+        self.token = token
+        self.api_url = "https://api.github.com"
+        self.headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+
+    def _get_user_repositories(self):
+        repos = []
+        page = 1
+        while True:
+            url = f"{self.api_url}/users/{self.username}/repos?per_page=100&page={page}"
+            resp = requests.get(url, headers=self.headers)
+            if resp.status_code != 200:
+                break
+            data = resp.json()
+            if not data:
+                break
+            repos.extend(data)
+            page += 1
+        return repos
+
+    def _get_repo_languages(self, full_name):
+        url = f"{self.api_url}/repos/{full_name}/languages"
+        resp = requests.get(url, headers=self.headers)
+        if resp.status_code != 200:
+            return {}
+        return resp.json()
+
+    def _get_commit_stats(self, full_name):
+        url = f"{self.api_url}/repos/{full_name}/stats/contributors"
+        max_retries = 10
+        for attempt in range(max_retries):
+            resp = requests.get(url, headers=self.headers)
+            if resp.status_code == 202:
+                time.sleep(2)
+                continue
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            if not data:
+                return None
+            for contributor in data:
+                author = contributor.get('author')
+                if author and author.get('login', '').lower() == self.username.lower():
+                    total_lines = sum(week.get('a', 0) + week.get('d', 0) for week in contributor.get('weeks', []))
+                    total_commits = sum(week.get('c', 0) for week in contributor.get('weeks', []))
+                    return total_lines, total_commits
+        return None
+
+    def analyze_language_usage(self):
+        language_stats = defaultdict(lambda: [0, 0])  # language: [lines_changed, commits]
+        repos = self._get_user_repositories()
+        for repo in repos:
+            full_name = repo['full_name']
+            languages = self._get_repo_languages(full_name)
+            commit_stats = self._get_commit_stats(full_name)
+            if not commit_stats:
+                continue
+            lines_changed, commits = commit_stats
+            total_bytes = sum(languages.values())
+            if total_bytes == 0:
+                continue
+            for lang, bytes_count in languages.items():
+                proportion = bytes_count / total_bytes
+                language_stats[lang][0] += int(lines_changed * proportion)
+                language_stats[lang][1] += int(commits * proportion)
+        return dict(language_stats)
+
+
+if __name__ == "__main__":
+    import configparser
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    username = config['github']['username']
+    token = config['github']['token']
+
+    analyzer = GitHubLanguageCommitAnalyzer(username, token)
+    result = analyzer.analyze_language_usage()
+    print(result)
