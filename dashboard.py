@@ -3,9 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import OSSanaliser
-from StatusAnaliser import GitHubStatsAnalyzerAllTime
-from StatusAnaliser  import GitHubLanguageCommitAnalyzer
+from StatusAnaliser import GitHubStatsAnalyzerAllTime, GitHubLanguageCommitAnalyzer
 import SentimentalAnaliser
+import configparser
+from github import Github, GithubException
 
 import configparser
 
@@ -55,6 +56,45 @@ def load_sentiment_for_repos(repo_list, num_events=10):
         score = SentimentalAnaliser.get_user_activity_sentiment(full_name, num_events)
         result[full_name] = score
     return result
+
+@st.cache_data(ttl=3600)
+def fetch_all_commit_dates(username: str, token: str) -> pd.DatetimeIndex:
+    """
+    Coleta todas as datas de commits de um usuário em todos os repositórios.
+    Agrupa falhas 409 para repositórios vazios.
+    """
+    gh = Github(token)
+    user = gh.get_user(username)
+    dates = []
+    for repo in user.get_repos():
+        try:
+            commits = repo.get_commits(author=username)
+        except GithubException as e:
+            if e.status == 409:
+                continue
+            else:
+                raise
+        try:
+            for commit in commits:
+                try:
+                    dates.append(commit.commit.author.date)
+                except:
+                    continue
+        except GithubException as e:
+            if e.status == 409:
+                continue
+            else:
+                raise
+    return pd.to_datetime(dates)
+
+
+def frequency_by_quarter(dates: pd.DatetimeIndex) -> pd.Series:
+    if dates.empty:
+        return pd.Series(dtype=int)
+    quarters = dates.to_series().dt.to_period('Q')
+    freq = quarters.value_counts().sort_index()
+    freq.index = freq.index.astype(str)
+    return freq
 
 
 def load_issues_and_prs_stats(username, token):
@@ -192,59 +232,60 @@ def main():
     st.write("---")
 
 
-    st.subheader("2. Seus repositórios: Próprios vs. Colaborações")
-    with st.spinner("Carregando lista de repositórios..."):
-        owned_repos, non_owned_repos = load_participation_stats(USERNAME)
+    #st.subheader("2. Seus repositórios: Próprios vs. Colaborações")
+    #with st.spinner("Carregando lista de repositórios..."):
+    #    owned_repos, non_owned_repos = load_participation_stats(USERNAME)
 
-    st.write(
-        f"- Você possui **{len(owned_repos)}** repositórios.\n"
-        f"- Você colabora em **{len(non_owned_repos)}** repositórios."
-    )
+#    st.write(
+ #       f"- Você possui **{len(owned_repos)}** repositórios.\n"
+  ## )
+#
+ #   df_participation = pd.DataFrame({
+  #      "Tipo": ["Próprios", "Colaborando"],
+   #     "Quantidade": [len(owned_repos), len(non_owned_repos)]
+    #})
 
-    df_participation = pd.DataFrame({
-        "Tipo": ["Próprios", "Colaborando"],
-        "Quantidade": [len(owned_repos), len(non_owned_repos)]
-    })
+    #fig1, ax1 = plt.subplots()
+#    ax1.pie(
+#        df_participation["Quantidade"],
+#        labels=df_participation["Tipo"],
+#        autopct="%1.1f%%",
+#        startangle=90
+#    )
+#    ax1.axis("equal")
+#    st.pyplot(fig1)
+#
+#    st.write("---")
+#
 
-    fig1, ax1 = plt.subplots()
-    ax1.pie(
-        df_participation["Quantidade"],
-        labels=df_participation["Tipo"],
-        autopct="%1.1f%%",
-        startangle=90
-    )
-    ax1.axis("equal")
-    st.pyplot(fig1)
+    st.subheader("2. Sentimento médio geral dos repositórios")
+    repo_full_names = [f"{USERNAME}/{repo_name}" for repo_name in status_per_repo.keys()]
+    with st.spinner("Calculando sentimento nos comentários (pode demorar um pouco)..."):
+        sentiment_dict = load_sentiment_for_repos(repo_full_names, num_events=10)
+    # Filtrar apenas os sentimentos diferentes de zero
+    valid_sentiments = [v for v in sentiment_dict.values() if v != 0]
+    if not valid_sentiments:
+        st.warning("Nenhum dado de sentimento válido para calcular a média (todos zero ou ausentes).")
+    else:
+        # Calcula média geral sem considerar zeros
+        mean_sentiment = sum(valid_sentiments) / len(valid_sentiments)
+        st.metric("Sentimento Médio Geral", f"{mean_sentiment:.3f}")
+
+        # Plot único de barra horizontal
+        fig_sent, ax_sent = plt.subplots(figsize=(6, 2))
+        ax_sent.barh([0], [mean_sentiment]*2, color='steelblue')
+        ax_sent.set_xlim(-1, 1)
+        ax_sent.set_yticks([0])
+        ax_sent.set_yticklabels(["Média Geral"])
+        ax_sent.set_xlabel("Sentimento (-1 a +1)")
+        ax_sent.set_title("Sentimento médio geral de todos os repositórios")
+        ax_sent.axvline(x=0, color='red', linestyle='--', linewidth=1)
+        plt.tight_layout()
+        st.pyplot(fig_sent)
 
     st.write("---")
 
-
-    st.subheader("3. Sentimento médio (Issues/PRs/Commits) por repositório")
-
-
-    repo_full_names = [ f"{USERNAME}/{repo_name}" for repo_name in status_per_repo.keys() ]
-    with st.spinner("Calculando sentimento nos comentários (pode demorar um pouco)..."):
-        sentiment_dict = load_sentiment_for_repos(repo_full_names, num_events=10)
-    df_sentiment = pd.DataFrame({
-        "Repositório": [full.split("/")[1] for full in sentiment_dict.keys()],
-        "Sentimento": list(sentiment_dict.values())
-    })
-    df_sentiment = df_sentiment.sort_values("Sentimento", ascending=False).reset_index(drop=True)
-    st.write("Tabela: sentimento médio (quanto mais próximo de +1, mais positivo).")
-    st.dataframe(df_sentiment)
-
-    if not df_sentiment.empty:
-        fig3, ax3 = plt.subplots(figsize=(8, max(4, 0.5 * len(df_sentiment))))
-        ax3.barh(df_sentiment["Repositório"], df_sentiment["Sentimento"]*2)
-        ax3.set_xlabel("Sentimento (–1 a +1)")
-        ax3.set_xlim([-1,1])
-        ax3.axvline(x=0, color='red', linestyle='--', linewidth=2)
-        ax3.set_ylabel("Repositório")
-        ax3.set_title("Sentimento médio dos comentários por repositório")
-        st.pyplot(fig3)
-
-
-    st.subheader("4. Estado atual de Issues e Pull Requests")
+    st.subheader("3. Estado atual de Issues e Pull Requests")
 
     with st.spinner("Coletando informações de Issues e PRs..."):
         df_issues_prs = load_issues_and_prs_stats(USERNAME, TOKEN)
@@ -283,7 +324,7 @@ def main():
         st.pyplot(fig5)
 
 
-        st.subheader("5. Distribuição por Linguagem de Programação")
+        st.subheader("4. Distribuição por Linguagem de Programação")
         with st.spinner("Calculando distribuição por linguagem..."):
             lang_stats = load_language_distribution(USERNAME, TOKEN)
 
@@ -317,6 +358,26 @@ def main():
         st.pyplot(fig2)
 
     st.write("---")
+
+    st.subheader("5. Frequência de Commits por Trimestre")
+    with st.spinner("Coletando datas de commits..."):
+        dates = fetch_all_commit_dates(USERNAME, TOKEN)
+    if dates.empty:
+        st.warning("Nenhum commit encontrado para análise trimestral.")
+    else:
+        freq = frequency_by_quarter(dates)
+        df_freq = freq.reset_index()
+        df_freq.columns = ["Trimestre", "Commits"]
+        st.dataframe(df_freq)
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.bar(df_freq["Trimestre"], df_freq["Commits"])
+        ax.set_title("Commits por Trimestre (YYYYQX)")
+        ax.set_xlabel("Trimestre")
+        ax.set_ylabel("Número de Commits")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig)
 
 
 
