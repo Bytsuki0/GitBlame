@@ -53,9 +53,27 @@ def load_sentiment_for_repos(repo_list, num_events=10):
     SentimentalAnaliser.setup_nltk()
     result = {}
     for full_name in repo_list:
-        score = SentimentalAnaliser.get_user_activity_sentiment(full_name, num_events)
+        score, all = SentimentalAnaliser.get_user_activity_sentiment(full_name, num_events)
         result[full_name] = score
     return result
+
+@st.cache_data(ttl=3600)
+def load_sentiment_for_comments(username: str,
+                                token: str,
+                                num_events: int = 10):
+    """
+    1) Busca comentários (até ~300) via REST Events API
+    2) Seleciona os primeiros `num_events`
+    3) Calcula sentimento médio desses comentários
+    Retorna: (quantidade_analisada, média_sentimento)
+    """
+
+    comments = SentimentalAnaliser.fetch_user_issue_comments_rest(username, token)
+    selected = comments[:num_events]
+    overall_avg, _scores = SentimentalAnaliser.get_user_comments_sentiment(selected)
+    return len(selected), overall_avg
+
+
 
 @st.cache_data(ttl=3600)
 def fetch_all_commit_dates(username: str, token: str) -> pd.DatetimeIndex:
@@ -283,9 +301,34 @@ def main():
         plt.tight_layout()
         st.pyplot(fig_sent)
 
-    st.write("---")
+        st.write("---")
+    
+    
+    st.subheader("3. Comentarios em issues outros issues com analise de sentimento")
 
-    st.subheader("3. Estado atual de Issues e Pull Requests")
+    with st.spinner("Procurando todos os comentarios e calculando sentimento (pode demorar um pouco)..."):
+        numero_comments, avg_score_comments = load_sentiment_for_comments(
+        USERNAME, TOKEN, num_events=20
+    )
+    
+    st.metric("Número de comentarios", f"{numero_comments}")
+    st.metric("Média de sentimento dos comentários", f"{avg_score_comments:.2f}")
+    # Plot único de barra horizontal
+    fig_sent, ax_sent = plt.subplots(figsize=(6, 2))
+    ax_sent.barh([0], [avg_score_comments]*2, color='steelblue')
+    ax_sent.set_xlim(-1, 1)
+    ax_sent.set_yticks([0])
+    ax_sent.set_yticklabels(["Média Geral"])
+    ax_sent.set_xlabel("Sentimento (-1 a +1)")
+    ax_sent.set_title("Sentimento médio geral de todos os repositórios")
+    ax_sent.axvline(x=0, color='red', linestyle='--', linewidth=1)
+    plt.tight_layout()
+    st.pyplot(fig_sent)
+
+    st.write("---")
+    
+    
+    st.subheader("4. Estado atual de Issues e Pull Requests")
 
     with st.spinner("Coletando informações de Issues e PRs..."):
         df_issues_prs = load_issues_and_prs_stats(USERNAME, TOKEN)
@@ -324,7 +367,7 @@ def main():
         st.pyplot(fig5)
 
 
-        st.subheader("4. Distribuição por Linguagem de Programação")
+        st.subheader("5. Distribuição por Linguagem de Programação")
         with st.spinner("Calculando distribuição por linguagem..."):
             lang_stats = load_language_distribution(USERNAME, TOKEN)
 
@@ -359,7 +402,7 @@ def main():
 
     st.write("---")
 
-    st.subheader("5. Frequência de Commits por Trimestre")
+    st.subheader("6. Frequência de Commits por Trimestre")
     with st.spinner("Coletando datas de commits..."):
         dates = fetch_all_commit_dates(USERNAME, TOKEN)
     if dates.empty:
