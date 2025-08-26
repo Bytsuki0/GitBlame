@@ -192,27 +192,47 @@ def get_commit_stats_non_owned(username, commits):
 
 # Estatísticas de participação em repositórios
 def get_repo_participation_stats(username):
+    headers = HEADERS
+    page = 1
+    all_repos = []
+    while True:
+        url = f"https://api.github.com/users/{username}/repos?per_page=100&page={page}"
+        response = requests.get(url, headers)
+        if not response.ok:
+            print(f"Erro ao buscar repositórios: {response.status_code}")
+            return []
 
-    url = f"https://api.github.com/users/{username}/repos?per_page=100"
-    response = requests.get(url, headers=HEADERS)
-    if not response.ok:
-        print(f"Erro ao buscar repositórios: {response.status_code}")
-        return []
+        page_data = response.json()
+        if not page_data:
+            break
 
-    repos = response.json()
+        all_repos.extend(page_data)
+        page += 1
+
     owned_repos = []
     non_owned_repos = []
 
-    for repo in repos:
+    for repo in all_repos:
         fullname = repo.get('full_name')
         if repo['owner']['login'] == username:
             owned_repos.append(fullname)
         else:
             non_owned_repos.append(fullname)
 
-    print(f"Total de repositórios públicos: {len(repos)}")
+    print(f"Total de repositórios públicos: {len(all_repos)}")
     print(f"Repositórios próprios: {len(owned_repos)}")
     print(f"Repositórios colaborando: {len(non_owned_repos)}")
 
-    return [owned_repos, non_owned_repos]
+    return [owned_repos,non_owned_repos]
+
+
+def main():
+    username = "Gictorbit"
+
+    print(get_repo_participation_stats(username))
+
+
+
+
+
 
