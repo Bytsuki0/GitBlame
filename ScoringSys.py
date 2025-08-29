@@ -18,7 +18,6 @@ Usage examples:
     from ScoringSys import score_user
     summary = score_user(username, token)
     print(summary)
-
 """
 
 import math
