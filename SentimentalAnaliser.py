@@ -226,7 +226,6 @@ if __name__ == '__main__':
     score, resultado = get_user_activity_sentiment(repo, num_events=10)
     print(resultado)
     print(f"Sentimento geral: {score:.2f}")
-    username = "Gictorbit"
     comments = fetch_user_issue_comments_rest(username, token)
     overall_avg, comment_scores = get_user_comments_sentiment(comments)
     print(f"Sentimento médio do usuário: {overall_avg:.3f}")

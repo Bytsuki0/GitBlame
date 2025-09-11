@@ -329,7 +329,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--username', '-u', help='GitHub username (overrides config)')
     p.add_argument('--token', '-t', help='GitHub token (overrides config)')
-    p.add_argument('--repo-limit', type=int, default=10, help='Limit number of repos to analyze for sentiment')
+    p.add_argument('--repo-limit', type=int, default=10, help=10)
     args = p.parse_args()
 
     try:
