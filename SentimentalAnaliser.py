@@ -8,6 +8,14 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 import configparser as cfgparser
 
 
+import nltk
+
+# Garante que o vader_lexicon está disponível
+try:
+    nltk.data.find("sentiment/vader_lexicon.zip")
+except LookupError:
+    nltk.download("vader_lexicon")
+
 def setup_nltk():
     try:
         nltk.data.find('vader_lexicon')

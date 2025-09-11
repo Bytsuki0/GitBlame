@@ -15,12 +15,13 @@ Design choices (defaults):
    parameters to suit your project.
 
 Usage examples:
-    from ScoringSys import score_user
+    from ScoringSys import score_usersudo a
     summary = score_user(username, token)
     print(summary)
 """
-
+import os
 import math
+import json
 import statistics
 import configparser as cfgparser
 from typing import Dict, List, Optional
@@ -288,6 +289,39 @@ def score_user(username: Optional[str] = None, token: Optional[str] = None,
     }
 
 
+def save_score_to_json(result: Dict, username: str,filename: str = "score_result.json") -> str:
+    """
+    Save the score_user result dict as a JSON file in a 'json' folder
+    located in the main project directory (same level as ScoringSys.py).
+    
+    Args:
+        result (Dict): The result dict returned by score_user().
+        filename (str): Name of the JSON file (default "score_result.json").
+    
+    Returns:
+        str: Full path to the saved JSON file.
+    """
+    # Diretório principal (onde está o ScoringSys.py)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Criar a pasta 'json' se não existir
+    json_dir = os.path.join(base_dir, "json")
+    os.makedirs(json_dir, exist_ok=True)
+
+    # Se não passar filename, usa padrão com o username
+    if not filename:
+        filename = f"{username}_score.json"
+
+    # Caminho completo do arquivo
+    file_path = os.path.join(json_dir, filename)
+
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+        return file_path
+    except Exception as e:
+        raise RuntimeError(f"Erro ao salvar JSON: {e}")
+
 # If run as script, print an example summary
 if __name__ == '__main__':
     import argparse
@@ -302,6 +336,8 @@ if __name__ == '__main__':
         summary = score_user(username=args.username, token=args.token, repo_limit=args.repo_limit)
         import json
         print(json.dumps(summary, indent=2, ensure_ascii=False))
+        saved_path = save_score_to_json(summary, username=args.username or DEFAULT_USERNAME)
+        print(f"Resultado salvo em: {saved_path}")
     except Exception as e:
         print('Erro ao calcular pontuação:', e)
 
