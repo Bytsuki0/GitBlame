@@ -83,6 +83,7 @@ def get_user_activity_sentiment(repo_full_name, num_events=10):
 
     Retorna:
       - float: média composta dos escores de sentimento.
+      - dict: escores por repo chave = repos, valor = lista de escores.
     """
     # Extract username and repo
     username, repo = repo_full_name.split("/")

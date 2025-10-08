@@ -90,16 +90,17 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
     if not repo_full_names:
         try:
             analyzer = f3.GitHubStatsAnalyzerAllTime(username, token)
-            repo_full_names = [r['full_name'] for r in analyzer.repos]
+            repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
         except Exception:
             repo_full_names = []
 
     for full in (repo_full_names or []):
         try:
-            s = f2.get_user_activity_sentiment(full, num_events=num_events)
-            sentiments[full] = float(s)
+            scores, reps = f2.get_user_activity_sentiment(full, num_events=num_events)
+            score =+ scores
+            print(score,scores)
         except Exception:
-            sentiments[full] = 0.0
+            score =+ 0.0
 
     # average available sentiment scores
     if sentiments:
@@ -109,8 +110,7 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
 
     # Ensure it's within [-1,1]
     avg = max(-1.0, min(1.0, avg))
-
-    return {'score': avg, 'details': sentiments}
+    return {'score': score, 'details': reps}
 
 
 def compute_oss_score(username: str, token: str, num_events: int = 100) -> Dict:
