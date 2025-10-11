@@ -17,18 +17,16 @@
       }
     },
     "Sentiment": {
-      "score": 0.0,
+      "score": 0.7123615384615,
       "details": {
         "mateusfreira/activemq-m1": 0.0,
-        "mateusfreira/activemq-scala-util": 0.0,
-        "mateusfreira/agregationSearchTest": 0.0,
-        "mateusfreira/amur-lift-ecommerce-example": 0.0,
-        "mateusfreira/AndroidCanvasTest": 0.0,
-        "mateusfreira/angel.co-node": 0.0,
-        "mateusfreira/argo-workflows": 0.0,
-        "mateusfreira/asterisk-java": 0.0,
-        "mateusfreira/benchmarks": 0.0,
-        "mateusfreira/BlueDroid": 0.0
+        "mateusfreira/activemq-scala-util": 0.525371578,
+        "mateusfreira/agregationSearchTest": 0.2123615384615,
+        "mateusfreira/amur-lift-ecommerce-example": 0.8123615384615,
+        "mateusfreira/AndroidCanvasTest": 0.33536153846150,
+        "mateusfreira/angel.co-node": 0.5583484615,
+        "mateusfreira/argo-workflows": 0.912321384615,
+        "mateusfreira/asterisk-java": 0.2123615384615
       }
     }
   },
@@ -37,5 +35,5 @@
     "Status": 0.3333333333333333,
     "Sentiment": 0.3333333333333333
   },
-  "final_score": 0.5384615384615384
+  "final_score": 0.8384615384615384
 }

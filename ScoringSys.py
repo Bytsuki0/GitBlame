@@ -93,12 +93,12 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
             repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
         except Exception:
             repo_full_names = []
-
     for full in (repo_full_names or []):
         try:
             scores, reps = f2.get_user_activity_sentiment(full, num_events=num_events)
-            score =+ scores
-            print(score,scores)
+            if scores != 0.0:
+                score =+ scores
+                sentiments[full] = scores
         except Exception:
             score =+ 0.0
 
@@ -107,10 +107,9 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
         avg = statistics.mean(sentiments.values())
     else:
         avg = 0.0
-
     # Ensure it's within [-1,1]
-    avg = max(-1.0, min(1.0, avg))
-    return {'score': score, 'details': reps}
+    #avg = max(-1.0, min(1.0, avg))
+    return {'score': avg, 'details': sentiments}
 
 
 def compute_oss_score(username: str, token: str, num_events: int = 100) -> Dict:
@@ -329,7 +328,7 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--username', '-u', help='GitHub username (overrides config)')
     p.add_argument('--token', '-t', help='GitHub token (overrides config)')
-    p.add_argument('--repo-limit', type=int, default=10, help=10)
+    p.add_argument('--repo-limit', type=int, default=200, help=200)
     args = p.parse_args()
 
     try:

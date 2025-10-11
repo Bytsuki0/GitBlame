@@ -173,7 +173,7 @@ def load_language_distribution(username, token):
 
 
 def main():
-    st.title("📊 GitBlame Dashboard")
+    st.title("📊 SoftSkillMiner Dashboard")
     st.markdown(
         """
         Dashboard:
