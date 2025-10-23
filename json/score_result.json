@@ -1,18 +1,18 @@
 {
   "areas": {
     "OSS": {
-      "score": -0.3709650375006349,
+      "score": 0.12903496249936497,
       "details": {
         "issue_resolution_rate": 0.0,
-        "pr_merge_rate": 0.0,
+        "pr_merge_rate": 0.75,
         "commits_activity": 0.9435524437490476
       }
     },
     "Status": {
-      "score": 0.37489011769468683,
+      "score": 0.37580436009700824,
       "details": {
         "lines_activity": 1.0,
-        "commits_activity": 0.9277197919266457,
+        "commits_activity": 0.9290911555301277,
         "week_streak": 0.1346153846153846
       }
     },
@@ -31,5 +31,5 @@
     "Status": 0.3333333333333333,
     "Sentiment": 0.3333333333333333
   },
-  "final_score": 0.001308360064683975
+  "final_score": 0.16827977419879103
 }

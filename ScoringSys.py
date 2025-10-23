@@ -86,13 +86,19 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
         pass
 
     sentiments = {}
-    # If no explicit repos provided, try to get from StatusAnaliser
-    if not repo_full_names:
-        try:
-            analyzer = f3.GitHubStatsAnalyzerAllTime(username, token)
-            repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
-        except Exception:
-            repo_full_names = []
+
+    #try:
+    #    analyzer = f3.GitHubStatsAnalyzerAllTime(username, token)
+    #    repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
+    #except Exception:
+    #    repo_full_names = []
+    print(repo_full_names)
+    #if not repo_full_names:
+    #   try:
+    #        analyzer = f3.GitHubStatsAnalyzerAllTime(username, token)
+    #        repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
+    #    except Exception:
+    #       repo_full_names = []
 
     for full in (repo_full_names or []):
         try:
