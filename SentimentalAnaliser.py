@@ -222,14 +222,9 @@ def get_user_comments_sentiment(comments):
 
 if __name__ == '__main__':
     setup_nltk()
-    repo = input("Informe 'usuario/repositorio' no GitHub: ")
-    print("Analisando sentimento...")
-    score, resultado = get_user_activity_sentiment(repo, num_events=10)
-    print(resultado)
-    print(f"Sentimento geral: {score:.2f}")
-    comments = fetch_user_issue_comments_rest(username, token)
-    overall_avg, comment_scores = get_user_comments_sentiment(comments)
-    print(f"Sentimento médio do usuário: {overall_avg:.3f}")
+    rep = "Gictorbit/go-cipher"
+    f2 = get_user_activity_sentiment(rep, num_events=10) 
+    print(f2)
    
 
     

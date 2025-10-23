@@ -4,6 +4,9 @@ import time
 from datetime import datetime, timedelta
 from collections import defaultdict
 
+##d:\Code\GitBlame\StatusAnaliser.py:74: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+##  date_obj = datetime.utcfromtimestamp(week_timestamp)
+
 class GitHubStatsAnalyzerAllTime:
     def __init__(self, username: str, token: str):
         self.username = username
@@ -272,6 +275,8 @@ if __name__ == "__main__":
     username = config['github']['username']
     token = config['github']['token']
 
-    analyzer = GitHubLanguageCommitAnalyzer(username, token)
-    result = analyzer.analyze_language_usage()
-    print(result)
+    lang = GitHubLanguageCommitAnalyzer(username, token)
+    print(lang.analyze_language_usage())
+
+    #analyzer = GitHubStatsAnalyzerAllTime(username, token)
+    #print(analyzer.get_results_as_json())
