@@ -41,7 +41,7 @@ DEFAULT_TOKEN = config.get('github', 'token', fallback=None)
 DEFAULT_WEIGHTS = {
     'OSS': 1.0,
     'Status': 1.0,
-    'Sentiment': 1.0
+    'Sentiment': 2.0
 }
 
 # Helper normalizers -> produce values in [0,1], later converted to [-1,1]
@@ -71,7 +71,6 @@ def _to_signed01(x01: float) -> float:
     return max(-1.0, min(1.0, 2.0 * x01 - 1.0))
 
 
-# Area-specific scorers
 
 def compute_sentiment_score(username: str, token: str, repo_full_names: Optional[List[str]] = None,
                             num_events: int = 10) -> Dict:
@@ -102,13 +101,11 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
         except Exception:
             score =+ 0.0
 
-    # average available sentiment scores
     if sentiments:
         avg = statistics.mean(sentiments.values())
     else:
         avg = 0.0
-    # Ensure it's within [-1,1]
-    #avg = max(-1.0, min(1.0, avg))
+
     return {'score': avg, 'details': sentiments}
 
 
@@ -116,7 +113,6 @@ def compute_oss_score(username: str, token: str, num_events: int = 100) -> Dict:
     """Computes OSS area score based on issues/PRs opened vs closed/merged and commit counts.
     Returns dict with keys: score, details
     """
-    # Pull data from OSSanaliser
     try:
         opened = f1.get_user_opened_issues_and_prs(username, num_events)
     except Exception:
