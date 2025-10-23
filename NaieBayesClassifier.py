@@ -29,12 +29,10 @@ def parse_profile_str(s):
     s = str(s).strip()
     if s == "" or s.lower() == "nan":
         return {}
-    # try json
     try:
         return json.loads(s)
     except Exception:
         pass
-    # try python literal
     try:
         return ast.literal_eval(s)
     except Exception:
@@ -56,7 +54,7 @@ if not CSV_PATH.exists():
     raise FileNotFoundError(f"CSV not found: {CSV_PATH}")
 
 
-df = pd.read_csv(CSV_PATH, dtype=str, keep_default_na=False)  # keep strings
+df = pd.read_csv(CSV_PATH, dtype=str, keep_default_na=False) 
 
 
 if 'profile' not in df.columns or 'programmer_type' not in df.columns:
@@ -133,5 +131,5 @@ def predict_from_profile_string(profile_str):
     return model.predict(v_scaled)[0]
 
 
-sample = '{"Go": [241388, 261], "Just": [54643, 9], "Dockerfile": [27748, 6], "PLpgSQL": [19499, 1], "Python": [3629, 57], "Shell": [12242, 155], "PHP": [21, 0]}'
+sample = '{"Python": [1899351, 58], "C++": [159070, 2], "C": [37498, 2], "XSLT": [4853, 0], "Fortran": [1274, 0], "JavaScript": [10094, 4], "PowerShell": [285, 0], "Smarty": [268, 0], "Jinja": [49, 0], "Batchfile": [21, 0], "Java": [5130, 13], "R": [171081, 8]}'
 print("Demo sample prediction ->", predict_from_profile_string(sample))
