@@ -41,7 +41,7 @@ DEFAULT_TOKEN = config.get('github', 'token', fallback=None)
 DEFAULT_WEIGHTS = {
     'OSS': 1.0,
     'Status': 1.0,
-    'Sentiment': 2.0
+    'Sentiment': 1.0
 }
 
 # Helper normalizers -> produce values in [0,1], later converted to [-1,1]
@@ -91,7 +91,6 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
     #    repo_full_names = [f"{username}/{repo_name}" for repo_name in analyzer.repos]
     #except Exception:
     #    repo_full_names = []
-    print(repo_full_names)
     #if not repo_full_names:
     #   try:
     #        analyzer = f3.GitHubStatsAnalyzerAllTime(username, token)
@@ -108,10 +107,24 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
         except Exception:
             score =+ 0.0
 
-    if sentiments:
-        avg = statistics.mean(sentiments.values())
-    else:
-        avg = 0.0
+    upper = 0 
+    base = 0 
+    
+    
+    for points in sentiments:
+        if sentiments[points] > 0:
+            base = base + 1
+            upper= upper + 1
+        if sentiments[points] < 0:
+            base = base + 1
+
+    scr = upper / base if base > 0 else 0.0
+    
+    avg = scr
+    #if sentiments:
+    #    avg = statistics.mean(sentiments.values())
+    #else:
+    #    avg = 0.0
 
     return {'score': avg, 'details': sentiments}
 

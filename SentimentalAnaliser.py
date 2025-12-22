@@ -108,7 +108,7 @@ def get_user_activity_sentiment(repo_full_name, num_events=10):
                 if is_english(body):
                     text_en = body
                 else:
-                    text_en = translator.translate(body)
+                        text_en = translator.translate(body)
                 score = sia.polarity_scores(text_en)['compound']
                 sentiment_scores[key].append(score)
         else:
@@ -222,7 +222,7 @@ def get_user_comments_sentiment(comments):
 
 if __name__ == '__main__':
     setup_nltk()
-    rep = "Gictorbit/go-cipher"
+    rep = "pystardust/sbar"
     f2 = get_user_activity_sentiment(rep, num_events=10) 
     print(f2)
    

@@ -80,7 +80,7 @@ def _to_signed01(x01: float) -> float:
 # Area-specific scorers
 
 def compute_sentiment_score(username: str, token: str, repo_full_names: Optional[List[str]] = None,
-                            num_events: int = 10) -> Dict[str, Any]:
+                            num_events: int = 10000) -> Dict[str, Any]:
     """Computes sentiment area score.
 
     Returns dict with keys: score (float in [-1,1]), details (dict per-repo sentiment)
@@ -112,7 +112,7 @@ def compute_sentiment_score(username: str, token: str, repo_full_names: Optional
     for full in (repo_full_names or []):
         try:
             # Call SentimentalAnaliser and accept multiple possible return shapes
-            res = f2.get_user_activity_sentiment(full, num_events=num_events, token=token)
+            res = f2.get_user_activity_sentiment(full, num_events=num_events)
 
             if isinstance(res, (tuple, list)):
                 # expected shape: (avg, scores_list)
