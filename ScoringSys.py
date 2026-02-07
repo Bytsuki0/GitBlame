@@ -344,7 +344,12 @@ if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--username', '-u', help='GitHub username (overrides config)')
     p.add_argument('--token', '-t', help='GitHub token (overrides config)')
-    p.add_argument('--repo-limit', type=int, default=200, help=200)
+    p.add_argument(
+    '--repo-limit',
+    type=int,
+    default=200,
+    help="Maximum number of repositories to analyze (default: %(default)s)"
+)
     args = p.parse_args()
 
     try:

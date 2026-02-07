@@ -278,5 +278,5 @@ if __name__ == "__main__":
     lang = GitHubLanguageCommitAnalyzer(username, token)
     print(lang.analyze_language_usage())
 
-    #analyzer = GitHubStatsAnalyzerAllTime(username, token)
-    #print(analyzer.get_results_as_json())
+    analyzer = GitHubStatsAnalyzerAllTime(username, token)
+    print(analyzer.get_results_as_json())
